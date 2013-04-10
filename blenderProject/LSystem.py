@@ -205,9 +205,9 @@ def drawAlgae(phrase):
         elif(uni == BO):
             pile.append(positionCourante)
             positionCourante = (positionCourante[0]  , positionCourante[1] + 1)
-            print ("ouverture |" + str(len(pile)))
+            
         elif(uni == BF):
-            print ("fermeture |" + str(len(pile)))
+            
             if len(pile) > 0:
                 positionCourante = pile[len(pile) - 1] 
                 positionCourante = (positionCourante[0], positionCourante[1] - 1)
