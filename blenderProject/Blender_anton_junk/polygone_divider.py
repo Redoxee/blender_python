@@ -14,6 +14,8 @@ def split_polygone(polygone = []):
         list_indice_length.append((i,length))
     list_indice_length.sort(key=lambda side: -side[1])
     side1 = segment(polygone[list_indice_length[0][0]],polygone[(list_indice_length[0][0] +1 )% len(polygone)])
+    if list_indice_length[1][1] == list_indice_length[2][1] :
+        list_indice_length[1] = (list_indice_length[2][0],list_indice_length[1][1])
     side2 = segment(polygone[list_indice_length[1][0]],polygone[(list_indice_length[1][0] +1 )% len(polygone)])
     
     coupure_segment = 0.5 # ou va etre coupe le cote du polygone, 05 est le millieu
