@@ -1,7 +1,10 @@
-﻿from collections import namedtuple
+﻿
+from collections import namedtuple
 from mathutils import Vector
 import bpy
-from random import random
+from random import random, seed
+#import parser
+import math
 segment = namedtuple('segment','p1,p2')
 
 def split_polygone(polygone = []):
@@ -81,6 +84,23 @@ def dessine_polygone(polygone,name):
     obj,base = add_obj(mesh, bpy.context)
     return obj,base
 
+def dessine_polygone_simple(polygone = [] ,name = 'polygone',height = 10):
+    nb_verts = len(polygone)
+    edges =[]
+    for i in range(nb_verts):
+        edges.append((i,(i+1) % nb_verts))
+#        print('('+str(i)+','+str((i+1) % nb_verts)+')')
+    mesh = bpy.data.meshes.new('polygone_' + name)
+    mesh.from_pydata(polygone, edges, [])
+    mesh.update()
+    obj,base = add_obj(mesh, bpy.context)
+    select_obj(obj,base)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.edge_face_add()
+    bpy.ops.mesh.extrude_region_move()
+    bpy.ops.transform.translate(value=(0,0,height))
+    bpy.ops.object.mode_set(mode='OBJECT')
+    return obj,base
 def get_random_point_in_bounds(polygone=[]):
     if(len(polygone) == 0):
         return Vector((0,0,0))
@@ -95,7 +115,27 @@ def get_random_point_in_bounds(polygone=[]):
         ymax = v.y if v.y > ymax else ymax
         zmax = v.z if v.z > zmax else zmax
     return Vector((random() * (xmax - xmin) + xmin,random()*(ymax - ymin) + ymin,random()*(zmax - zmin) + zmin))
-    
+
+def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
+    etage = Vector((0,0,hauteur_etage))
+    inter = Vector((0,0,hauteur_inter_etage))
+    shrink = (profondeur,profondeur,profondeur)
+    expande = (1 / profondeur,1 / profondeur,1 / profondeur)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.edge_face_add()
+    for i in range(nb_etage - 1 ):  
+        bpy.ops.mesh.extrude_region_move()
+        bpy.ops.transform.translate(value=inter)
+        bpy.ops.mesh.extrude_region_move()
+        bpy.ops.transform.resize(value=shrink)
+        bpy.ops.mesh.extrude_region_move()
+        bpy.ops.transform.translate(value=etage)
+        bpy.ops.mesh.extrude_region_move()
+        bpy.ops.transform.resize(value=expande)
+    bpy.ops.mesh.extrude_region_move()
+    bpy.ops.transform.translate(value=inter)
+    bpy.ops.transform.resize(value=(toit,toit,toit))
+    bpy.ops.object.mode_set(mode='OBJECT')
 def dessine_polygone_parcel(polygone,name, aprox_hauteur):
     nb_verts = len(polygone)
     edges =[]
@@ -112,12 +152,44 @@ def dessine_polygone_parcel(polygone,name, aprox_hauteur):
     select_obj(obj,base)
     bpy.context.scene.cursor_location = centerposition
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-    bpy.ops.transform.resize(value=(0.652225, 0.652225, 0.652225))
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.edge_face_add()
+    bpy.ops.transform.resize(value=(0.7, 0.7, 0.7))
+    #bpy.ops.object.mode_set(mode='EDIT')
+    etage = int(1 + random()*10)
+    if(etage > 0):
+        profondeur_ = random()/2 + 0.5
+        dessine_batiment(nb_etage = etage,toit = random(),profondeur = profondeur_)
     #bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value":(0, 0, hauteur)})
-    bpy.ops.object.mode_set(mode='OBJECT')
+    #bpy.ops.object.mode_set(mode='OBJECT')
     return obj,base
+def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_max = 30,shrink_parcel = 0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = 1,seed_ = 42,percentage_missing = 0.05):
+    seed(seed_)
+    if isWireFrame :
+        for pol in tPoly :
+            dessine_polygone(pol,'wirePoly')
+        return
+        
+    centre_ville = average_position(polygone_englobant)
+    list_indice_length = []
+    for i in range(len(polygone_englobant)):
+        v1 = polygone_englobant[i]
+        v2 = polygone_englobant[(i+1) % len(polygone_englobant) ]
+        length = ((v1.x - v2.x)*(v1.x - v2.x)) + ((v1.y - v2.y) * (v1.y - v2.y))
+        list_indice_length.append((i,length))
+    list_indice_length.sort(key=lambda side: -side[1])
+    max_len = math.sqrt(list_indice_length[0][1]) * 0.7
+    min = 2000
+    max = 0
+    for polygone in tPoly:
+        center_poly = get_random_point_in_bounds(polygone)
+        distance_centreville = (centre_ville - center_poly).length
+        importance =  1
+        offset = 0.05
+        if distance_centreville+offset !=  0 : importance = 1/(offset + distance_centreville*0.005)
+        else : importance = 10/importance
+        importance = importance * 10
+        print(str(importance))
+        dessine_polygone_simple(polygone = polygone,height = importance)
+    
     
 def area(p):
     return 0.5 * abs(sum(x0*y1 - x1*y0
@@ -134,11 +206,12 @@ def subdivide_until_area(polygone = [],min_area = 5):
         return subdivide_until_area(pol1,min_area) + subdivide_until_area(pol2,min_area)
 print('debut')
 poly = [Vector((0,0,0))]
-poly.append(Vector((0,75,0)))
-poly.append(Vector((50,90,0)))
-poly.append(Vector((70,60,0)))
-poly.append(Vector((85,25,0)))
-poly.append(Vector((40,-10,0)))
+poly.append(Vector((0,175,0)))
+poly.append(Vector((150,190,0)))
+poly.append(Vector((200,160,0)))
+poly.append(Vector((250,125,0)))
+poly.append(Vector((250,0,0)))
+poly.append(Vector((130,-90,0)))
 tpoly = [poly]
 print (str(get_random_point_in_bounds(poly)))
 print(str(area(poly)))
@@ -151,12 +224,13 @@ print(str(area(poly)))
 #        temp.append(tp[1])      
 #    tpoly = temp
     #print(str(len(tpoly)))
-tpoly = subdivide_until_area(poly,50)
+tpoly = subdivide_until_area(poly,100)
 nb_poly = len(tpoly)
 print(' nb poly = ' + str(nb_poly))
-ind = 0
-tBlenderPoly = []
-for pol in tpoly:
-    tBlenderPoly.append(dessine_polygone_parcel(pol,str(ind),20))
-    print(str((ind+1) / nb_poly))
-    ind += 1
+dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False)
+#ind = 0
+#tBlenderPoly = []
+#for pol in tpoly:
+#    tBlenderPoly.append(dessine_polygone_parcel(pol,str(ind),20))
+#    print(str((ind+1) / nb_poly))
+#    ind += 1
