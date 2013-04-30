@@ -1,4 +1,4 @@
-﻿
+
 from collections import namedtuple
 from mathutils import Vector
 import bpy
@@ -136,7 +136,7 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.transform.translate(value=inter)
     bpy.ops.transform.resize(value=(toit,toit,toit))
     bpy.ops.object.mode_set(mode='OBJECT')
-def dessine_polygone_parcel(polygone,name, aprox_hauteur):
+def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etage = 0.2,shrink_toit = 1 , nb_etage =1):
     nb_verts = len(polygone)
     edges =[]
     for i in range(nb_verts):
@@ -145,23 +145,20 @@ def dessine_polygone_parcel(polygone,name, aprox_hauteur):
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
     obj,base = add_obj(mesh, bpy.context)
-    #hauteur = aprox_hauteur + ( (aprox_hauteur / 5) * random() * (1 if random()> 0.5 else -1))
-    hauteur = aprox_hauteur * random()
     
     centerposition = average_position(polygone)
     select_obj(obj,base)
     bpy.context.scene.cursor_location = centerposition
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-    bpy.ops.transform.resize(value=(0.7, 0.7, 0.7))
-    #bpy.ops.object.mode_set(mode='EDIT')
-    etage = int(1 + random()*10)
+    bpy.ops.transform.resize(value=(shrink, shrink, shrink))
+    
+    etage = nb_etage
     if(etage > 0):
         profondeur_ = random()/2 + 0.5
-        dessine_batiment(nb_etage = etage,toit = random(),profondeur = profondeur_)
-    #bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value":(0, 0, hauteur)})
-    #bpy.ops.object.mode_set(mode='OBJECT')
+        dessine_batiment(nb_etage = etage,profondeur = profondeur_, toit = shrink_toit)
     return obj,base
-def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_max = 30,shrink_parcel = 0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = 1,seed_ = 42,percentage_missing = 0.05):
+    
+def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = 1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
     if isWireFrame :
         for pol in tPoly :
@@ -176,19 +173,39 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_max = 30,shrink_
         length = ((v1.x - v2.x)*(v1.x - v2.x)) + ((v1.y - v2.y) * (v1.y - v2.y))
         list_indice_length.append((i,length))
     list_indice_length.sort(key=lambda side: -side[1])
-    max_len = math.sqrt(list_indice_length[0][1]) * 0.7
-    min = 2000
-    max = 0
+    max_distance = math.sqrt(list_indice_length[0][1]) * 0.5
+    
+    index  = 0
     for polygone in tPoly:
-        center_poly = get_random_point_in_bounds(polygone)
-        distance_centreville = (centre_ville - center_poly).length
-        importance =  1
-        offset = 0.05
-        if distance_centreville+offset !=  0 : importance = 1/(offset + distance_centreville*0.005)
-        else : importance = 10/importance
-        importance = importance * 10
-        print(str(importance))
-        dessine_polygone_simple(polygone = polygone,height = importance)
+        if random() < 1 - percentage_missing:
+            index = index +1
+            center_poly = average_position(polygone)
+            distance_centreville = (centre_ville - center_poly).length
+            importance =  1
+            offset = 0.05
+            
+            max_function = nb_etage_max
+            coeff_decrease = 0.1
+            inflexion_coef =  max_distance / 4
+            n_etage = int(max_function*(-math.atan(coeff_decrease*(distance_centreville -inflexion_coef))/math.pi+1/2)) + 1
+            print(str(n_etage))
+            if n_etage:
+                #dessine_polygone_simple(polygone = polygone,height = n_etage)
+                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = shrink_toit,nb_etage = n_etage)
+            
+            #if distance_centreville !=  0 : importance = 1000.0/(1.0 * distance_centreville) - (max_distance)/10.0
+            #else : importance = 10/importance
+            #if importance < 0 : importance = 0
+            
+            #importance = importance * 10
+            #print(str(importance))
+            #if distance_centreville > max_distance :
+            #    if random()< 0.9 :
+            #        dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = shrink_toit,nb_etage = (nb_etage_min + 1 if random() <0.5 else 0))
+            #else :
+            #    dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = shrink_toit,nb_etage = int(importance))
+            print (str((1.0 *index) / len(tPoly)))
+            #dessine_polygone_simple(polygone = polygone,height = importance)
     
     
 def area(p):
@@ -231,6 +248,6 @@ dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False)
 #ind = 0
 #tBlenderPoly = []
 #for pol in tpoly:
-#    tBlenderPoly.append(dessine_polygone_parcel(pol,str(ind),20))
+#    tBlenderPoly.append(dessine_polygone_parcel(pol,str(ind),nb_etage = int(random()*25)))
 #    print(str((ind+1) / nb_poly))
 #    ind += 1
