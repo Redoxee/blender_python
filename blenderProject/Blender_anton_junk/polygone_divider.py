@@ -186,17 +186,17 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     deselect_obj(mesh)
     return obj,base
     
-def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
+def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
 
     centre_ville = average_position(polygone_englobant)
-    tCentreVilles = [get_random_point_in_bounds(resize_polygone_from_center(polygone_englobant,0.6) ) for i in range(3)]
+    tCentreVilles = [get_random_point_in_bounds(resize_polygone_from_center(polygone_englobant,0.6) ) for i in range(nb_centre_activite)]
     indice = 0
     if isWireFrame :
         for pol in tPoly :
             dessine_polygone(pol,'wirePoly')
-			indice = indice + 1
-			print(str((1.0*indice)/len(tPoly)))
+            indice = indice + 1
+            print(str((1.0*indice)/len(tPoly)))
         for centre in  tCentreVilles:
             bpy.ops.mesh.primitive_cube_add(location = centre)
         return
@@ -221,24 +221,25 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_
     for polygone in tPoly:
         if random() < 1 - percentage_missing:
             index = index +1
-            center_poly = average_position(polygone)
+            center_polygone = average_position(polygone)
             #distance_centreville = (centre_ville - center_poly).length
             
             d_pole_ville = 100000000
-            for center_pol in tCentreVilles:
-                distance_temp = (center_pol - center_poly).length
+            distance_temp = 0
+            for centreVille in tCentreVilles:
+                distance_temp = (centreVille - center_polygone).length
                 if distance_temp < d_pole_ville : 
                     d_pole_ville = distance_temp
-            distance_centreville = distance_temp
+            distance_centreville = d_pole_ville
             
             n_etage = int(max_function*(-math.atan(coeff_decrease*(distance_centreville -inflexion_coef))/math.pi+1/2)) + 1 + nb_etage_min
             #print(str(distance_centreville))
             if n_etage > 0:
                 n_etage = int(random() * (n_etage - 1)) + 2
-                dessine_polygone_simple(polygone = polygone,height = n_etage)
+                #dessine_polygone_simple(polygone = polygone,height = n_etage)
                 toit = random() if shrink_toit < 0 else shrink_toit
                     
-                #dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
+                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
             
             print (str((1.0 *index) / len(tPoly)))
     
@@ -265,14 +266,14 @@ poly.append(Vector((250,125,0)))
 poly.append(Vector((250,0,0)))
 poly.append(Vector((130,-90,0)))
 #poly = [v* 1 for v in poly]
-poly = resize_polygone_from_center(poly,1)
+poly = resize_polygone_from_center(poly,3)
 tpoly = [poly]
 print("air total : " +str(area(poly)))
     
 tpoly = subdivide_until_area(poly,100)
 nb_poly = len(tpoly)
 print('subdivision terminee , nb poly : ' + str(nb_poly))
-dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = True , nb_etage_max = 35)
+dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False , nb_etage_max = 35,nb_centre_activite = 8)
 
 #for i in range(10):
 #    bpy.ops.mesh.primitive_cube_add(location = get_random_point_in_bounds(poly))
