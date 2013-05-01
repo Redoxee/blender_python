@@ -65,13 +65,15 @@ def add_obj(obdata, context):
     base = scene.objects.link(obj_new)
     return obj_new,base
 
-def select_obj(obj,base):
-    for ob in bpy.context.scene.objects:
-        ob.select = False
+def select_obj(obj,base,mesh):
+    bpy.context.scene.objects[mesh.name].select = True
+    #for ob in bpy.context.scene.objects:
+    #    ob.select = False
     base.select = True
     bpy.context.scene.objects.active = obj
+def deselect_obj(mesh):
+    bpy.context.scene.objects[mesh.name].select = False
 
-    
 def dessine_polygone(polygone,name):
     nb_verts = len(polygone)
     edges =[]
@@ -94,12 +96,13 @@ def dessine_polygone_simple(polygone = [] ,name = 'polygone',height = 10):
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
     obj,base = add_obj(mesh, bpy.context)
-    select_obj(obj,base)
+    select_obj(obj,base,mesh)
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.edge_face_add()
     bpy.ops.mesh.extrude_region_move()
     bpy.ops.transform.translate(value=(0,0,height))
     bpy.ops.object.mode_set(mode='OBJECT')
+    deselect_obj(mesh)
     return obj,base
 def get_random_point_in_bounds(polygone=[]):
     if(len(polygone) == 0):
@@ -147,7 +150,7 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     obj,base = add_obj(mesh, bpy.context)
     
     centerposition = average_position(polygone)
-    select_obj(obj,base)
+    select_obj(obj,base,mesh)
     bpy.context.scene.cursor_location = centerposition
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
     bpy.ops.transform.resize(value=(shrink, shrink, shrink))
@@ -156,9 +159,10 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     if(etage > 0):
         profondeur_ = random()/2 + 0.5
         dessine_batiment(nb_etage = etage,profondeur = profondeur_, toit = shrink_toit)
+    deselect_obj(mesh)
     return obj,base
     
-def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = 1,seed_ = 42,percentage_missing = 0.05):
+def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
     if isWireFrame :
         for pol in tPoly :
@@ -182,16 +186,18 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_
             center_poly = average_position(polygone)
             distance_centreville = (centre_ville - center_poly).length
             importance =  1
-            offset = 0.05
             
             max_function = nb_etage_max
-            coeff_decrease = 0.1
-            inflexion_coef =  max_distance / 4
+            coeff_decrease = 0.05
+            inflexion_coef =  max_distance / 2
             n_etage = int(max_function*(-math.atan(coeff_decrease*(distance_centreville -inflexion_coef))/math.pi+1/2)) + 1
             print(str(n_etage))
-            if n_etage:
+            if n_etage > 0:
+                n_etage = int(random() * (n_etage - 1)) + 2
                 #dessine_polygone_simple(polygone = polygone,height = n_etage)
-                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = shrink_toit,nb_etage = n_etage)
+                toit = random() if shrink_toit < 0 else shrink_toit
+                    
+                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
             
             #if distance_centreville !=  0 : importance = 1000.0/(1.0 * distance_centreville) - (max_distance)/10.0
             #else : importance = 10/importance
@@ -232,6 +238,7 @@ poly.append(Vector((130,-90,0)))
 tpoly = [poly]
 print (str(get_random_point_in_bounds(poly)))
 print(str(area(poly)))
+#poly = [v* 3 for v in poly]
 #dessine_polygone(poly,"original")
 #for i in range(10):
 #    temp = []
