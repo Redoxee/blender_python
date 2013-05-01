@@ -51,6 +51,25 @@ def split_polygone(polygone = []):
     sous_poly_2.append(np1)
     return(sous_poly_1,sous_poly_2)
 
+def point_in_poly(x,y,poly):
+
+    n = len(poly)
+    inside = False
+
+    p1x,p1y,p1z = poly[0]
+    for i in range(n+1):
+        p2x,p2y,p2z = poly[i % n]
+        if y > min(p1y,p2y):
+            if y <= max(p1y,p2y):
+                if x <= max(p1x,p2x):
+                    if p1y != p2y:
+                        xints = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
+                    if p1x == p2x or x <= xints:
+                        inside = not inside
+        p1x,p1y = p2x,p2y
+
+    return inside
+
 def average_position(polygone):
     vert = Vector((0,0,0))
     if len(polygone) == 0 :
@@ -58,7 +77,30 @@ def average_position(polygone):
     for v in polygone :
         vert = vert + v
     return vert / len(polygone)
-
+def resize_polygone_from_center(polygone = [], factor = 1):
+    average = average_position(polygone)
+    tempPol = [((v - average)*factor)+average for v in polygone]
+    return tempPol
+def get_random_point_in_bounds(polygone=[]):
+    if(len(polygone) == 0):
+        return Vector((0,0,0))
+        
+    xmin,ymin,zmin = polygone[0]
+    xmax,ymax,zmax = polygone[0]
+    for v in polygone :
+        xmin = v.x if v.x < xmin else xmin
+        ymin = v.y if v.y < ymin else ymin
+        zmin = v.z if v.z < zmin else zmin
+        
+        xmax = v.x if v.x > xmax else xmax
+        ymax = v.y if v.y > ymax else ymax
+        zmax = v.z if v.z > zmax else zmax
+    candidat = Vector((random() * (xmax - xmin) + xmin,random()*(ymax - ymin) + ymin,random()*(zmax - zmin) + zmin))
+    while not point_in_poly(candidat.x,candidat.y,polygone):
+        candidat = Vector((random() * (xmax - xmin) + xmin,random()*(ymax - ymin) + ymin,random()*(zmax - zmin) + zmin))
+    return candidat
+    #return Vector((random() * (xmax - xmin) + xmin,random()*(ymax - ymin) + ymin,random()*(zmax - zmin) + zmin))
+    
 def add_obj(obdata, context):
     scene = context.scene
     obj_new = bpy.data.objects.new(obdata.name, obdata)
@@ -67,8 +109,6 @@ def add_obj(obdata, context):
 
 def select_obj(obj,base,mesh):
     bpy.context.scene.objects[mesh.name].select = True
-    #for ob in bpy.context.scene.objects:
-    #    ob.select = False
     base.select = True
     bpy.context.scene.objects.active = obj
 def deselect_obj(mesh):
@@ -79,7 +119,6 @@ def dessine_polygone(polygone,name):
     edges =[]
     for i in range(nb_verts):
         edges.append((i,(i+1) % nb_verts))
-#        print('('+str(i)+','+str((i+1) % nb_verts)+')')
     mesh = bpy.data.meshes.new('polygone_' + name)
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
@@ -91,7 +130,6 @@ def dessine_polygone_simple(polygone = [] ,name = 'polygone',height = 10):
     edges =[]
     for i in range(nb_verts):
         edges.append((i,(i+1) % nb_verts))
-#        print('('+str(i)+','+str((i+1) % nb_verts)+')')
     mesh = bpy.data.meshes.new('polygone_' + name)
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
@@ -104,20 +142,6 @@ def dessine_polygone_simple(polygone = [] ,name = 'polygone',height = 10):
     bpy.ops.object.mode_set(mode='OBJECT')
     deselect_obj(mesh)
     return obj,base
-def get_random_point_in_bounds(polygone=[]):
-    if(len(polygone) == 0):
-        return Vector((0,0,0))
-    xmin,ymin,zmin = polygone[0]
-    xmax,ymax,zmax = polygone[0]
-    for v in polygone :
-        xmin = v.x if v.x < xmin else xmin
-        ymin = v.y if v.y < ymin else ymin
-        zmin = v.z if v.z < zmin else zmin
-        
-        xmax = v.x if v.x > xmax else xmax
-        ymax = v.y if v.y > ymax else ymax
-        zmax = v.z if v.z > zmax else zmax
-    return Vector((random() * (xmax - xmin) + xmin,random()*(ymax - ymin) + ymin,random()*(zmax - zmin) + zmin))
 
 def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
     etage = Vector((0,0,hauteur_etage))
@@ -164,12 +188,22 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     
 def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
+
+    centre_ville = average_position(polygone_englobant)
+    tCentreVilles = [get_random_point_in_bounds(resize_polygone_from_center(polygone_englobant,0.6) ) for i in range(3)]
+    indice = 0
     if isWireFrame :
         for pol in tPoly :
             dessine_polygone(pol,'wirePoly')
+			indice = indice + 1
+			print(str((1.0*indice)/len(tPoly)))
+        for centre in  tCentreVilles:
+            bpy.ops.mesh.primitive_cube_add(location = centre)
         return
         
-    centre_ville = average_position(polygone_englobant)
+    
+    
+    
     list_indice_length = []
     for i in range(len(polygone_englobant)):
         v1 = polygone_englobant[i]
@@ -179,39 +213,34 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_etage_min =1,nb_etage_
     list_indice_length.sort(key=lambda side: -side[1])
     max_distance = math.sqrt(list_indice_length[0][1]) * 0.5
     
+    max_function = nb_etage_max-nb_etage_min
+    coeff_decrease = 0.03
+    inflexion_coef =  max_distance / 2
+    
     index  = 0
     for polygone in tPoly:
         if random() < 1 - percentage_missing:
             index = index +1
             center_poly = average_position(polygone)
-            distance_centreville = (centre_ville - center_poly).length
-            importance =  1
+            #distance_centreville = (centre_ville - center_poly).length
             
-            max_function = nb_etage_max
-            coeff_decrease = 0.05
-            inflexion_coef =  max_distance / 2
-            n_etage = int(max_function*(-math.atan(coeff_decrease*(distance_centreville -inflexion_coef))/math.pi+1/2)) + 1
-            print(str(n_etage))
+            d_pole_ville = 100000000
+            for center_pol in tCentreVilles:
+                distance_temp = (center_pol - center_poly).length
+                if distance_temp < d_pole_ville : 
+                    d_pole_ville = distance_temp
+            distance_centreville = distance_temp
+            
+            n_etage = int(max_function*(-math.atan(coeff_decrease*(distance_centreville -inflexion_coef))/math.pi+1/2)) + 1 + nb_etage_min
+            #print(str(distance_centreville))
             if n_etage > 0:
                 n_etage = int(random() * (n_etage - 1)) + 2
-                #dessine_polygone_simple(polygone = polygone,height = n_etage)
+                dessine_polygone_simple(polygone = polygone,height = n_etage)
                 toit = random() if shrink_toit < 0 else shrink_toit
                     
-                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
+                #dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
             
-            #if distance_centreville !=  0 : importance = 1000.0/(1.0 * distance_centreville) - (max_distance)/10.0
-            #else : importance = 10/importance
-            #if importance < 0 : importance = 0
-            
-            #importance = importance * 10
-            #print(str(importance))
-            #if distance_centreville > max_distance :
-            #    if random()< 0.9 :
-            #        dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = shrink_toit,nb_etage = (nb_etage_min + 1 if random() <0.5 else 0))
-            #else :
-            #    dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = shrink_toit,nb_etage = int(importance))
             print (str((1.0 *index) / len(tPoly)))
-            #dessine_polygone_simple(polygone = polygone,height = importance)
     
     
 def area(p):
@@ -235,23 +264,19 @@ poly.append(Vector((200,160,0)))
 poly.append(Vector((250,125,0)))
 poly.append(Vector((250,0,0)))
 poly.append(Vector((130,-90,0)))
+#poly = [v* 1 for v in poly]
+poly = resize_polygone_from_center(poly,1)
 tpoly = [poly]
-print (str(get_random_point_in_bounds(poly)))
-print(str(area(poly)))
-#poly = [v* 3 for v in poly]
-#dessine_polygone(poly,"original")
-#for i in range(10):
-#    temp = []
-#    for pol in tpoly:
-#        tp = split_polygone(pol)
-#        temp.append(tp[0])
-#        temp.append(tp[1])      
-#    tpoly = temp
-    #print(str(len(tpoly)))
+print("air total : " +str(area(poly)))
+    
 tpoly = subdivide_until_area(poly,100)
 nb_poly = len(tpoly)
-print(' nb poly = ' + str(nb_poly))
-dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False)
+print('subdivision terminee , nb poly : ' + str(nb_poly))
+dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = True , nb_etage_max = 35)
+
+#for i in range(10):
+#    bpy.ops.mesh.primitive_cube_add(location = get_random_point_in_bounds(poly))
+
 #ind = 0
 #tBlenderPoly = []
 #for pol in tpoly:
