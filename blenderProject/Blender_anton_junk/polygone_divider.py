@@ -270,10 +270,11 @@ poly = resize_polygone_from_center(poly,3)
 tpoly = [poly]
 print("air total : " +str(area(poly)))
     
-tpoly = subdivide_until_area(poly,100)
+tpoly = subdivide_until_area(poly,450)
 nb_poly = len(tpoly)
 print('subdivision terminee , nb poly : ' + str(nb_poly))
-dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False , nb_etage_max = 35,nb_centre_activite = 8)
+dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False , nb_etage_max = 35,nb_centre_activite = 2)
+print('subdivision terminee , nb poly : ' + str(nb_poly))
 
 #for i in range(10):
 #    bpy.ops.mesh.primitive_cube_add(location = get_random_point_in_bounds(poly))
