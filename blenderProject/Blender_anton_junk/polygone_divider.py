@@ -186,6 +186,33 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     deselect_obj(mesh)
     return obj,base
     
+def dessine_polygone_trotoire(polygone = [], shrink = 0.88, hauteur = 0.1,pente_bord = 0.95,name=""):
+    nb_verts = len(polygone)
+    edges =[]
+    for i in range(nb_verts):
+        edges.append((i,(i+1) % nb_verts))
+    mesh = bpy.data.meshes.new('polygone_trotoire_' + name)
+    mesh.from_pydata(polygone, edges, [])
+    mesh.update()
+    obj,base = add_obj(mesh, bpy.context)
+    
+    centerposition = average_position(polygone)
+    select_obj(obj,base,mesh)
+    bpy.context.scene.cursor_location = centerposition
+    
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    bpy.ops.transform.resize(value=(shrink, shrink, shrink))
+    
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.edge_face_add()
+    bpy.ops.mesh.extrude_region_move()
+    bpy.ops.transform.translate(value=(hauteur,hauteur,hauteur))
+    bpy.ops.transform.resize(value=(pente_bord,pente_bord,pente_bord))
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
+    deselect_obj(mesh)
+    return obj,base
+
 def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
 
@@ -219,8 +246,10 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
     
     index  = 0
     for polygone in tPoly:
+    
+        index = index +1
+        dessine_polygone_trotoire(polygone,name=str(index))
         if random() < 1 - percentage_missing:
-            index = index +1
             center_polygone = average_position(polygone)
             #distance_centreville = (centre_ville - center_poly).length
             
@@ -241,7 +270,7 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
                     
                 dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
             
-            print (str((1.0 *index) / len(tPoly)))
+        print (str((1.0 *index) / len(tPoly)))
     
     
 def area(p):
@@ -266,7 +295,7 @@ poly.append(Vector((250,125,0)))
 poly.append(Vector((250,0,0)))
 poly.append(Vector((130,-90,0)))
 #poly = [v* 1 for v in poly]
-poly = resize_polygone_from_center(poly,3)
+poly = resize_polygone_from_center(poly,2)
 tpoly = [poly]
 print("air total : " +str(area(poly)))
     
