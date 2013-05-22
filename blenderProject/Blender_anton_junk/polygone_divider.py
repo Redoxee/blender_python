@@ -123,6 +123,12 @@ def dessine_polygone(polygone,name):
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
     obj,base = add_obj(mesh, bpy.context)
+    centerposition = average_position(polygone)
+    select_obj(obj,base,mesh)
+    bpy.context.scene.cursor_location = centerposition
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    deselect_obj(mesh)
+    
     return obj,base
 
 def dessine_polygone_simple(polygone = [] ,name = 'polygone',height = 10):
@@ -221,7 +227,7 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
     indice = 0
     if isWireFrame :
         for pol in tPoly :
-            dessine_polygone(pol,'wirePoly')
+            dessine_polygone(pol,'wirePoly'+str(indice))
             indice = indice + 1
             print(str((1.0*indice)/len(tPoly)))
         for centre in  tCentreVilles:
@@ -302,7 +308,7 @@ print("air total : " +str(area(poly)))
 tpoly = subdivide_until_area(poly,450)
 nb_poly = len(tpoly)
 print('subdivision terminee , nb poly : ' + str(nb_poly))
-dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = False , nb_etage_max = 35,nb_centre_activite = 2)
+dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = True , nb_etage_max = 35,nb_centre_activite = 2)
 print('subdivision terminee , nb poly : ' + str(nb_poly))
 
 #for i in range(10):
