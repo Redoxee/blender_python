@@ -5,6 +5,8 @@ import bpy
 from random import random, seed
 #import parser
 import math
+from bpy.props import *
+
 segment = namedtuple('segment','p1,p2')
 
 def split_polygone(polygone = []):
@@ -111,8 +113,10 @@ def select_obj(obj,base,mesh):
     bpy.context.scene.objects[mesh.name].select = True
     base.select = True
     bpy.context.scene.objects.active = obj
-def deselect_obj(mesh):
+def deselect_obj(base,mesh):
+    #base.select = False
     bpy.context.scene.objects[mesh.name].select = False
+    #bpy.context.scene.objects.active = None
 
 def dessine_polygone(polygone,name):
     nb_verts = len(polygone)
@@ -123,31 +127,15 @@ def dessine_polygone(polygone,name):
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
     obj,base = add_obj(mesh, bpy.context)
+    
     centerposition = average_position(polygone)
     select_obj(obj,base,mesh)
     bpy.context.scene.cursor_location = centerposition
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-    deselect_obj(mesh)
+    deselect_obj(base,mesh)
     
     return obj,base
 
-def dessine_polygone_simple(polygone = [] ,name = 'polygone',height = 10):
-    nb_verts = len(polygone)
-    edges =[]
-    for i in range(nb_verts):
-        edges.append((i,(i+1) % nb_verts))
-    mesh = bpy.data.meshes.new('polygone_' + name)
-    mesh.from_pydata(polygone, edges, [])
-    mesh.update()
-    obj,base = add_obj(mesh, bpy.context)
-    select_obj(obj,base,mesh)
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.edge_face_add()
-    bpy.ops.mesh.extrude_region_move()
-    bpy.ops.transform.translate(value=(0,0,height))
-    bpy.ops.object.mode_set(mode='OBJECT')
-    deselect_obj(mesh)
-    return obj,base
 
 def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
     etage = Vector((0,0,hauteur_etage))
@@ -168,6 +156,8 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.mesh.extrude_region_move()
     bpy.ops.transform.translate(value=inter)
     bpy.ops.transform.resize(value=(toit,toit,toit))
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.normals_make_consistent(inside=False)
     bpy.ops.object.mode_set(mode='OBJECT')
 def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etage = 0.2,shrink_toit = 1 , nb_etage =1):
     nb_verts = len(polygone)
@@ -189,7 +179,7 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     if(etage > 0):
         profondeur_ = random()/2 + 0.5
         dessine_batiment(nb_etage = etage,profondeur = profondeur_, toit = shrink_toit)
-    deselect_obj(mesh)
+    deselect_obj(base,mesh)
     return obj,base
     
 def dessine_polygone_trotoire(polygone = [], shrink = 0.88, hauteur = 0.1,pente_bord = 0.95,name=""):
@@ -216,18 +206,19 @@ def dessine_polygone_trotoire(polygone = [], shrink = 0.88, hauteur = 0.1,pente_
     bpy.ops.transform.resize(value=(pente_bord,pente_bord,pente_bord))
     bpy.ops.object.mode_set(mode='OBJECT')
     
-    deselect_obj(mesh)
+    deselect_obj(base,mesh)
     return obj,base
 
 def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
+    bpy.ops.object.select_all(action = 'DESELECT')
 
     centre_ville = average_position(polygone_englobant)
     tCentreVilles = [get_random_point_in_bounds(resize_polygone_from_center(polygone_englobant,0.6) ) for i in range(nb_centre_activite)]
     indice = 0
     if isWireFrame :
         for pol in tPoly :
-            dessine_polygone(pol,'wirePoly'+str(indice))
+            dessine_polygone(pol,'wirePoly')
             indice = indice + 1
             print(str((1.0*indice)/len(tPoly)))
         for centre in  tCentreVilles:
@@ -271,7 +262,6 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
             #print(str(distance_centreville))
             if n_etage > 0:
                 n_etage = int(random() * (n_etage - 1)) + 2
-                #dessine_polygone_simple(polygone = polygone,height = n_etage)
                 toit = random() if shrink_toit < 0 else shrink_toit
                     
                 dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
@@ -292,31 +282,90 @@ def subdivide_until_area(polygone = [],min_area = 5):
     else :
         pol1,pol2 = split_polygone(polygone)
         return subdivide_until_area(pol1,min_area) + subdivide_until_area(pol2,min_area)
-print('debut')
-poly = [Vector((0,0,0))]
-poly.append(Vector((0,175,0)))
-poly.append(Vector((150,190,0)))
-poly.append(Vector((200,160,0)))
-poly.append(Vector((250,125,0)))
-poly.append(Vector((250,0,0)))
-poly.append(Vector((130,-90,0)))
-#poly = [v* 1 for v in poly]
-poly = resize_polygone_from_center(poly,2)
-tpoly = [poly]
-print("air total : " +str(area(poly)))
+        
+def basic_main(factorPoly = True ,isOnlyPoly = True):
+    print('debut')
+    poly = [Vector((0,0,0))]
+    poly.append(Vector((0,175,0)))
+    poly.append(Vector((150,190,0)))
+    poly.append(Vector((200,160,0)))
+    poly.append(Vector((250,125,0)))
+    poly.append(Vector((250,0,0)))
+    poly.append(Vector((130,-90,0)))
+    #poly = [v* 1 for v in poly]
+    poly = resize_polygone_from_center(poly,factorPoly)
+    tpoly = [poly]
+    print("air total : " +str(area(poly)))
+        
+    tpoly = subdivide_until_area(poly,450)
+    nb_poly = len(tpoly)
+    print('subdivision terminee , nb poly : ' + str(nb_poly))
+    dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = isOnlyPoly , nb_etage_max = 35,nb_centre_activite = 2)
+    print('subdivision terminee , nb poly : ' + str(nb_poly))
+
     
-tpoly = subdivide_until_area(poly,450)
-nb_poly = len(tpoly)
-print('subdivision terminee , nb poly : ' + str(nb_poly))
-dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = True , nb_etage_max = 35,nb_centre_activite = 2)
-print('subdivision terminee , nb poly : ' + str(nb_poly))
 
-#for i in range(10):
-#    bpy.ops.mesh.primitive_cube_add(location = get_random_point_in_bounds(poly))
+#
+#    Store properties in the active scene
+#
+def initSceneProperties(scn):
+    bpy.types.Scene.FactorPolyBegin = IntProperty(
+        name = "multiply Factor polygone", 
+        description = "multiply the begining polygon",
+        min = 1,
+        max = 20)
+    scn['FactorPolyBegin'] = 2
 
-#ind = 0
-#tBlenderPoly = []
-#for pol in tpoly:
-#    tBlenderPoly.append(dessine_polygone_parcel(pol,str(ind),nb_etage = int(random()*25)))
-#    print(str((ind+1) / nb_poly))
-#    ind += 1
+    bpy.types.Scene.BoolOnlyPoly = BoolProperty(
+        name = "only polygon", 
+        description = "only draw the base polygon of the city")
+    scn['BoolOnlyPoly'] = True
+    
+initSceneProperties(bpy.context.scene)
+
+class LayoutDemoPanel(bpy.types.Panel):
+    """Creates a Panel in the scene context of the properties editor"""
+    bl_label = "City Boom"
+    bl_idname = "SCENE_PT_layout"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+        
+        
+        layout.prop(scene, 'FactorPolyBegin')
+
+        layout.prop(scene, 'BoolOnlyPoly')
+
+        # Big render button
+        layout.label(text="Generate City")
+        row = layout.row()
+        row.scale_y = 3.0
+        row.operator("my.generator")
+        
+class GenerateBigCity(bpy.types.Operator):
+    bl_idname = "my.generator"
+    bl_label = "Generate City"
+ 
+    def execute(self, context):
+        onlyPoly = context.scene['BoolOnlyPoly']
+        factorPolyBegin = context.scene['FactorPolyBegin']
+        
+        basic_main(factorPoly = factorPolyBegin ,isOnlyPoly = onlyPoly)
+        return{'FINISHED'}    
+
+def register():
+    bpy.utils.register_class(LayoutDemoPanel)
+    bpy.utils.register_class(GenerateBigCity)
+ 
+ 
+def unregister():
+    bpy.utils.unregister_class(LayoutDemoPanel)
+    bpy.utils.unregister_class(GenerateBigCity)
+ 
+if __name__ == "__main__":  # only for live edit.
+    bpy.utils.register_module(__name__)
+
