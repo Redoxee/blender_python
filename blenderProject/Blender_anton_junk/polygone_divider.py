@@ -476,7 +476,6 @@ def basic_main(factorPoly = True ,isOnlyPoly = True):
     poly.append(Vector((150,40,0))) 
     poly.append(Vector((0,150,0))) 
     poly.append(Vector((-150,40,0))) 
-    
     poly = resize_polygone_from_center(poly,factorPoly)
     tpoly = [poly]
     print("air total : " +str(area(poly)))
@@ -555,3 +554,4 @@ def unregister():
  
 if __name__ == "__main__":  # only for live edit.
     bpy.utils.register_module(__name__)
+    
