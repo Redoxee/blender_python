@@ -314,7 +314,8 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     shrink = (profondeur,profondeur,profondeur)
     expande = (1 / profondeur,1 / profondeur,1 / profondeur)
     bpy.ops.object.mode_set(mode='EDIT')
-    #bpy.ops.mesh.edge_face_add()
+    bpy.ops.mesh.edge_face_add()
+    
     for i in range(nb_etage - 1 ):  
         bpy.ops.mesh.extrude_region_move()
         bpy.ops.transform.translate(value=inter )
@@ -330,6 +331,8 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.mesh.extrude_region_move()
     bpy.ops.mesh.merge(type='CENTER', uvs=False)
     bpy.ops.mesh.select_all(action='SELECT')
+    
+    normInside = toit < 0.5
     bpy.ops.mesh.normals_make_consistent(inside=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     
@@ -447,7 +450,7 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
                 n_etage = int(random() * (n_etage - 1)) + 2
                 toit = random() if shrink_toit < 0 else shrink_toit
                     
-                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit,nb_etage = n_etage)
+                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = 0.8,nb_etage = n_etage)
                 #dessine_simple_batiment(polygone,hauteur = n_etage * 5, shrink = shrink_parcel)
             
         print (str((1.0 *index) / len(tPoly)))
@@ -500,12 +503,12 @@ def initSceneProperties(scn):
         description = "multiply the begining polygon",
         min = 1,
         max = 20)
-    scn['FactorPolyBegin'] = 2
+    scn['FactorPolyBegin'] = 1
 
     bpy.types.Scene.BoolOnlyPoly = BoolProperty(
         name = "only polygon", 
         description = "only draw the base polygon of the city")
-    scn['BoolOnlyPoly'] = True
+    scn['BoolOnlyPoly'] = False
     
 initSceneProperties(bpy.context.scene)
 
