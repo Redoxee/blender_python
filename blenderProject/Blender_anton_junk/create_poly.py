@@ -16,6 +16,14 @@ def average_position(polygone):
         vert = vert + v
     return vert / len(polygone)
 
+def generate_polygon(center, radius, n):
+    """ Generates a regular polygon with n sides, within the circle (center, radius) """
+    polygon = []
+    for i in range(n):
+        alpha = 2 * math.pi * i / n
+        polygon.append(Vector(((center.x + math.cos(alpha)*radius), (center.y + math.sin(alpha)*radius), center.z)))
+    return polygon
+    
 def add_obj(obdata, context):
     scene = context.scene
     obj_new = bpy.data.objects.new(obdata.name, obdata)
@@ -49,11 +57,78 @@ def dessine_polygone(polygone,name):
     
     return obj,base
 
-poly = [Vector((-100,-100,0))]         
-poly.append(Vector((100,-100,0)))  
-poly.append(Vector((150,40,0))) 
-poly.append(Vector((0,150,0))) 
-poly.append(Vector((-150,40,0)))
+
+
+
+###########################################################################################
+#                                                                                         #
+###########################################################################################
+def initSceneProperties(scn):
+    bpy.types.Scene.nbEdges = IntProperty(
+        name = "edges", 
+        description = "number of edges in polygone",
+        min = 3,
+        max = 100)
+    scn['nbEdges'] = 5
+    bpy.types.Scene.fieldRadius = IntProperty(
+        name = "radius", 
+        description = "radius of the field",
+        min = 1,
+        max = 1000)
+    scn['fieldRadius'] = 110
+
     
+initSceneProperties(bpy.context.scene)
+
+class LayoutCreateFieldPanel(bpy.types.Panel):
+    """Creates a Panel in the scene context of the properties editor"""
+    bl_label = "Field Creator"
+    bl_idname = "SCENE_PT_layout_field_creator"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+        
+        
+        layout.prop(scene, 'nbEdges')
+        layout.prop(scene, 'fieldRadius')
+        
+        layout.label(text="Generate the Field polygon")
+        row = layout.row()
+        row.operator("my.polygoncreator")
+        
+        
+class CreateFieldPolygonSelecterOp(bpy.types.Operator):
+    bl_idname = "my.polygoncreator"
+    bl_label = "create field"
+ 
+    def execute(self, context):
     
-dessine_polygone(poly,'poly')
+        print(str(context.scene))
+        for key in context.scene.keys() :
+            print(str(key))
+        nb_edge = context.scene['nbEdges']
+        radius = context.scene['fieldRadius']
+        
+        center = Vector((0,0,0))
+        poly = generate_polygon(center , radius , nb_edge)
+        dessine_polygone(poly,'poly')
+        
+        return{'FINISHED'}  
+
+
+def register():
+    bpy.utils.register_class(LayoutCreateFieldPanel)
+    bpy.utils.register_class(CreateFieldPolygonSelecterOp)
+ 
+ 
+def unregister():
+    bpy.utils.unregister_class(LayoutCreateFieldPanel)
+    bpy.utils.unregister_class(CreateFieldPolygonSelecterOp)
+ 
+if __name__ == "__main__":  # only for live edit.
+    bpy.utils.register_module(__name__)
+    
