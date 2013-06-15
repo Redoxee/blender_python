@@ -5,12 +5,15 @@ from collections import namedtuple
 from mathutils import Vector
 import os
 
-def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
+def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,reduction_initial = 0.7 ,profondeur=0.8,nb_etage = 10,toit = 1):
     etage = Vector((0,0,hauteur_etage))
     inter = Vector((0,0,hauteur_inter_etage))
     shrink = (profondeur,profondeur,profondeur)
     expande = (1 / profondeur,1 / profondeur,1 / profondeur)
     bpy.ops.object.mode_set(mode='EDIT')
+    
+    bpy.ops.transform.resize(value=(reduction_initial,reduction_initial,reduction_initial))
+    
     bpy.ops.mesh.edge_face_add()
     
     for i in range(nb_etage - 1 ):  
@@ -34,12 +37,13 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.object.mode_set(mode='OBJECT')
     
     
-def dessine_maison(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
+def dessine_maison(hauteur_etage = 2,hauteur_inter_etage = 1,reduction_initial = 0.7,profondeur=0.8,nb_etage = 10,toit = 1):
     etage = Vector((0,0,hauteur_etage))
     inter = Vector((0,0,hauteur_inter_etage))
     shrink = (profondeur,profondeur,profondeur)
     expande = (1 / profondeur,1 / profondeur,1 / profondeur)
     bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.transform.resize(value=(reduction_initial,reduction_initial,reduction_initial))
     bpy.ops.mesh.edge_face_add()
     
     bpy.ops.mesh.extrude_region_move()
@@ -68,12 +72,13 @@ def dessine_maison(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_e
     bpy.ops.mesh.normals_make_consistent(inside=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     
-def dessine_tours(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
+def dessine_tours(hauteur_etage = 2,hauteur_inter_etage = 1,reduction_initial = 0.7,profondeur=0.8,nb_etage = 10,toit = 1):
     etage = Vector((0,0,hauteur_etage))
     inter = Vector((0,0,hauteur_inter_etage))
     shrink = (profondeur,profondeur,profondeur)
     expande = (1 / profondeur,1 / profondeur,1 / profondeur)
     bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.transform.resize(value=(reduction_initial,reduction_initial,reduction_initial))
     bpy.ops.mesh.edge_face_add()
     
     bpy.ops.mesh.extrude_region_move()
@@ -100,14 +105,15 @@ def dessine_tours(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_et
     bpy.ops.object.mode_set(mode='OBJECT')
     
     
-def aply_drawing_function(function , hauteur_etage ,hauteur_inter_etage ,profondeur,nb_etage ,toit ):
+def aply_drawing_function(function , hauteur_etage ,hauteur_inter_etage,reduction_initial ,profondeur,nb_etage ,toit ):
     obj_select_list = []
     for obj in bpy.context.selected_objects:
         obj_select_list.append(obj)
         obj.select = False
     for obj in obj_select_list:
         obj.select = True
-        function(hauteur_etage ,hauteur_inter_etage ,profondeur,nb_etage ,toit)
+        bpy.context.scene.objects.active = obj
+        function(hauteur_etage , hauteur_inter_etage , reduction_initial , profondeur , nb_etage , toit)
         obj.select = False
     for obj in obj_select_list:
         obj.select = True
@@ -140,6 +146,12 @@ def initSceneProperties(scn):
         max = 1)
     scn['profonfeur'] = 0.8
     
+    bpy.types.Scene.taille_rue = FloatProperty(
+        name = "parcel occupation", 
+        min = 0.1,
+        max = 1)
+    scn['taille_rue'] = 0.8
+    
 initSceneProperties(bpy.context.scene)
 
 class LayoutCreatBatimentPanel(bpy.types.Panel):
@@ -159,6 +171,7 @@ class LayoutCreatBatimentPanel(bpy.types.Panel):
         layout.prop(scene, 'tailleEtage')
         layout.prop(scene, 'tailleInter')
         layout.prop(scene, 'profonfeur')
+        layout.prop(scene, 'taille_rue')
 
 
         # Big render button
@@ -184,8 +197,9 @@ class GenerateBatSimple(bpy.types.Operator):
         taille_et = context.scene['tailleEtage']
         taille_inter = context.scene['tailleInter']
         profondeur = context.scene['profonfeur']
+        ocupation = context.scene['taille_rue']
         
-        aply_drawing_function(dessine_batiment,hauteur_etage = taille_et,hauteur_inter_etage = taille_inter,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
+        aply_drawing_function(dessine_batiment,hauteur_etage = taille_et,hauteur_inter_etage = taille_inter, reduction_initial = ocupation,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
         #dessine_batiment(hauteur_etage = taille_et,hauteur_inter_etage = taille_inter,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
         return{'FINISHED'}  
 
@@ -203,8 +217,9 @@ class GenerateMaison(bpy.types.Operator):
         taille_et = context.scene['tailleEtage']
         taille_inter = context.scene['tailleInter']
         profondeur = context.scene['profonfeur']
+        ocupation = context.scene['taille_rue']
         
-        dessine_maison(hauteur_etage = taille_et,hauteur_inter_etage = taille_inter,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
+        aply_drawing_function(dessine_maison,hauteur_etage = taille_et,hauteur_inter_etage = taille_inter, reduction_initial = ocupation,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
         return{'FINISHED'}          
 
 class GenerateTour(bpy.types.Operator):
@@ -221,8 +236,10 @@ class GenerateTour(bpy.types.Operator):
         taille_et = context.scene['tailleEtage']
         taille_inter = context.scene['tailleInter']
         profondeur = context.scene['profonfeur']
+        ocupation = context.scene['taille_rue']
         
-        dessine_tours(hauteur_etage = taille_et,hauteur_inter_etage = taille_inter,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
+        aply_drawing_function(dessine_tours,hauteur_etage = taille_et,hauteur_inter_etage = taille_inter, reduction_initial = ocupation,profondeur=profondeur,nb_etage = nbEtage,toit = 1)
+        
         return{'FINISHED'}          
         
         
