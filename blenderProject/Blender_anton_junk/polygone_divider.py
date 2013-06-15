@@ -332,11 +332,16 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.mesh.merge(type='CENTER', uvs=False)
     bpy.ops.mesh.select_all(action='SELECT')
     
-    normInside = toit < 0.5
     bpy.ops.mesh.normals_make_consistent(inside=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     
-    
+def correct_normal_building(obj):
+    x_normal,y_normal,z_normal = obj.data.polygons[0].normal
+    if z_normal > 0 :
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.normals_make_consistent(inside=True)
+        bpy.ops.object.mode_set(mode='OBJECT')
+
 def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etage = 0.2,shrink_toit = 1 , nb_etage =1):
     nb_verts = len(polygone)
     edges =[]
@@ -357,6 +362,7 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     if(etage > 0):
         profondeur_ = random()/4 + 0.75
         dessine_batiment(nb_etage = etage,profondeur = profondeur_, toit = shrink_toit)
+        correct_normal_building(obj)
     deselect_obj(base,mesh)
     return obj,base
     
@@ -450,7 +456,7 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
                 n_etage = int(random() * (n_etage - 1)) + 2
                 toit = random() if shrink_toit < 0 else shrink_toit
                     
-                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = 0.8,nb_etage = n_etage)
+                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage)
                 #dessine_simple_batiment(polygone,hauteur = n_etage * 5, shrink = shrink_parcel)
             
         print (str((1.0 *index) / len(tPoly)))
