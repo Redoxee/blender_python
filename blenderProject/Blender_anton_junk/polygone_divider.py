@@ -101,6 +101,14 @@ def area(p):
 def segments(p):
     return zip(p, p[1:] + [p[0]])
 
+def generate_polygon(center, radius, n):
+    """ Generates a regular polygon with n sides, within the circle (center, radius) """
+    polygon = []
+    for i in range(n):
+        alpha = 2 * math.pi * i / n
+        polygon.append(Vector(((center.x + math.cos(alpha)*radius), (center.y + math.sin(alpha)*radius), center.z)))
+    return polygon
+    
 def get_polygone_orientation(polygone = []):
     res = 0
     for i in range(len(polygone)):
@@ -408,11 +416,12 @@ def subdivide_until_area(polygone = [],min_area = 5):
         
 def basic_main(factorPoly = True ,isOnlyPoly = True):
     print('debut')
-    poly = [Vector((-100,-100,0))]         
-    poly.append(Vector((100,-100,0)))  
-    poly.append(Vector((150,40,0))) 
-    poly.append(Vector((0,150,0))) 
-    poly.append(Vector((-150,40,0))) 
+    #poly = [Vector((-100,-100,0))]         
+    #poly.append(Vector((100,-100,0)))  
+    #poly.append(Vector((150,40,0))) 
+    #poly.append(Vector((0,150,0))) 
+    #poly.append(Vector((-150,40,0)))
+    poly = generate_polygon(Vector((0,0,0)),175,5)
     poly = resize_polygone_from_center(poly,factorPoly)
     tpoly = [poly]
     print("air total : " +str(area(poly)))
