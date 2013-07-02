@@ -421,15 +421,16 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.edge_face_add()
     
+    bpy.ops.transform.resize(value=shrink)
     for i in range(nb_etage - 1 ):  
         bpy.ops.mesh.extrude_region_move()
-        bpy.ops.transform.translate(value=inter )
-        bpy.ops.mesh.extrude_region_move()
-        bpy.ops.transform.resize(value=shrink)
-        bpy.ops.mesh.extrude_region_move()
-        bpy.ops.transform.translate(value=etage)
+        bpy.ops.transform.translate(value=etage )
         bpy.ops.mesh.extrude_region_move()
         bpy.ops.transform.resize(value=expande)
+        bpy.ops.mesh.extrude_region_move()
+        bpy.ops.transform.translate(value=inter)
+        bpy.ops.mesh.extrude_region_move()
+        bpy.ops.transform.resize(value=shrink)
     bpy.ops.mesh.extrude_region_move()
     bpy.ops.transform.translate(value=inter)
     bpy.ops.transform.resize(value=(toit,toit,toit))
@@ -556,7 +557,7 @@ def aply_drawing_function(drawing_function ,bat_name, hauteur_etage ,hauteur_int
     
     
     
-def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etage = 0.2,shrink_toit = 1 , nb_etage =1):
+def dessine_polygone_parcel(polygone , name,shrink = 0.7 , variation_profondeur_etage = 0.2 , shrink_toit = 1 , nb_etage = 1 , h_etage = 2 , h_inter = 1):
     nb_verts = len(polygone)
     edges =[]
     for i in range(nb_verts):
@@ -575,7 +576,7 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
     etage = nb_etage
     if(etage > 0):
         profondeur_ = random()/4 + 0.75
-        dessine_batiment(nb_etage = etage,profondeur = profondeur_, toit = shrink_toit)
+        dessine_batiment(nb_etage = etage,profondeur = profondeur_, toit = shrink_toit,hauteur_etage = h_etage ,hauteur_inter_etage = h_inter)
         correct_normal_building(obj)
     deselect_obj(base,mesh)
     return obj,base
@@ -586,7 +587,7 @@ def dessine_polygone_parcel(polygone,name,shrink = 0.7,variation_profondeur_etag
 #                                                                                                             #
 ###############################################################################################################
 
-def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
+def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1 ,nb_etage_min =1,nb_etage_max=30,shrink_parcel=0.7,isWireFrame = False,hauteur_etage = 3 , profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42,percentage_missing = 0.05):
     seed(seed_)
     bpy.ops.object.select_all(action = 'DESELECT')
     
@@ -639,7 +640,10 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
                 n_etage = int(random() * (n_etage - 1)) + 2
                 toit = random() if shrink_toit < 0 else shrink_toit
                     
-                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage)
+                percentage_etage = random() * 0.6 + 0.2
+                h_etage = hauteur_etage * percentage_etage
+                h_inter_etage = hauteur_etage - h_etage
+                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage , h_etage = h_etage , h_inter = h_inter_etage)
             
         print (str((1.0 *index) / len(tPoly)))
     
@@ -649,7 +653,7 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1,nb
 ###############################################################################################################
     
     
-def dessine_ville_from_list(tPoly = [],uptownPosition = Vector((0,0,0)) ,influence_zone = 11025,nb_etage_min =1,nb_etage_max=35,shrink_parcel=0.7,hauteur_etage = 2,hauteur_inter_etage = 1,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42):
+def dessine_ville_from_list(tPoly = [],uptownPosition = Vector((0,0,0)) ,influence_zone = 251025,nb_etage_min =1,nb_etage_max=35,shrink_parcel=0.7,hauteur_etage = 3,profondeur_etage=0.8,variation_profondeur_etage=0.2,shrink_toit = -1,seed_ = 42):
     seed(seed_)
     bpy.ops.object.select_all(action = 'DESELECT')
     
@@ -676,25 +680,27 @@ def dessine_ville_from_list(tPoly = [],uptownPosition = Vector((0,0,0)) ,influen
         if n_etage > 0:
             n_etage = int(random() * (n_etage - 1)) + 2
             toit = random() if shrink_toit < 0 else shrink_toit
-                
-            dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage)
+            percentage_etage = random() * 0.6 + 0.2
+            h_etage = hauteur_etage * percentage_etage
+            h_inter_etage = hauteur_etage - h_etage
+            dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage , h_etage = h_etage , h_inter = h_inter_etage)
             
         print (str((1.0 *index) / len(tPoly)))
     
-def dessin_ville_from_selection(uptown_Position = Vector((0,0,0))):
+def dessin_ville_from_selection(uptown_Position = Vector((0,0,0)), nEtageMin = 1 , nEtageMax = 35 , shrinkParcel = 0.7 , hauteurEtage = 3 , profondeurEtage = 0.8):
     poly_list = []
     for obj in bpy.context.selected_objects:
         p = get_poly_from_object(obj)
         if(p != []):
             poly_list.append(p)
         obj.select = False
-    dessine_ville_from_list(tPoly = poly_list, uptownPosition = uptown_Position )
+    dessine_ville_from_list(tPoly = poly_list, uptownPosition = uptown_Position , nb_etage_min = nEtageMin , nb_etage_max = nEtageMax , shrink_parcel = shrinkParcel , hauteur_etage = hauteurEtage ,profondeur_etage = profondeurEtage )
         
 ###############################################################################################################
 #                                                                                                             #
 ###############################################################################################################
         
-def basic_main(factorPoly = True ,isOnlyPoly = True):
+def basic_main(factorPoly = True ,isOnlyPoly = True , nUptown = 2 , floor_height = 3 , floor_depth = 0.8 , size_building = 0.7 , percentage_missing_building = 0.05):
     print('debut')
     poly = generate_polygon(Vector((0,0,0)),175,5)
     poly = resize_polygone_from_center(poly,factorPoly)
@@ -704,7 +710,7 @@ def basic_main(factorPoly = True ,isOnlyPoly = True):
     tpoly = subdivide_until_area(poly,450)
     nb_poly = len(tpoly)
     print('subdivision terminee , nb poly : ' + str(nb_poly))
-    dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = isOnlyPoly , nb_etage_max = 35,nb_centre_activite = 2)
+    dessine_ville(polygone_englobant = poly,tPoly = tpoly , isWireFrame = isOnlyPoly , nb_etage_max = 35 , nb_centre_activite = nUptown , percentage_missing = percentage_missing_building , shrink_parcel = size_building , hauteur_etage = floor_height ,profondeur_etage = floor_depth)
     print('subdivision terminee , nb poly : ' + str(nb_poly))
 
     

@@ -218,13 +218,12 @@ def get_poly_from_object(obj):
         res.append(Vector(v.co + location))
     return res
     
-
-def decoupe_selection(area_min):
+def decoupe_selection_using_split_operator(area_min,split_function):
     poly_to_draw = []
     for obj in bpy.context.selected_objects :
         poly = get_poly_from_object(obj)
         if area(poly) > area_min:
-            poly_to_draw.append((split_polygone(poly),obj.name))
+            poly_to_draw.append((split_function(poly),obj.name))
         else:
             obj.select = False
     bpy.ops.object.delete(use_global=False)
@@ -236,42 +235,15 @@ def decoupe_selection(area_min):
     for o,b in elem_added:  
         bpy.context.scene.objects[o.name].select = True
         b.select = True
+    
+def decoupe_selection(area_min):
+    decoupe_selection_using_split_operator(area_min,split_polygone)
         
 def decoupe_selection_evenly(area_min):
-    poly_to_draw = []
-    for obj in bpy.context.selected_objects :
-        poly = get_poly_from_object(obj)
-        if area(poly) > area_min:
-            poly_to_draw.append((split_evenly(poly),obj.name))
-        else:
-            obj.select = False
-    bpy.ops.object.delete(use_global=False)
-    elem_added = []
-    for poly_couple in poly_to_draw:
-        for poly in poly_couple[0]:
-            o,b =dessine_polygone(poly,poly_couple[1])
-            elem_added.append((o,b))
-    for o,b in elem_added:  
-        bpy.context.scene.objects[o.name].select = True
-        b.select = True
+    decoupe_selection_using_split_operator(area_min,split_evenly)
         
 def decoupe_selection_from_center(area_min):
-    poly_to_draw = []
-    for obj in bpy.context.selected_objects :
-        poly = get_poly_from_object(obj)
-        if area(poly) > area_min:
-            poly_to_draw.append((split_polygon_from_center(poly),obj.name))
-        else:
-            obj.select = False
-    bpy.ops.object.delete(use_global=False)
-    elem_added = []
-    for poly_couple in poly_to_draw:
-        for poly in poly_couple[0]:
-            o,b =dessine_polygone(poly,poly_couple[1])
-            elem_added.append((o,b))
-    for o,b in elem_added:  
-        bpy.context.scene.objects[o.name].select = True
-        b.select = True
+    decoupe_selection_using_split_operator(area_min,split_polygon_from_center)
         
         
         

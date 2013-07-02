@@ -455,9 +455,9 @@ def initSceneProperties(scn):
     
 initSceneProperties(bpy.context.scene)
 
-class LayoutDemoPanel(bpy.types.Panel):
+class LayoutCityGeneratorPanel(bpy.types.Panel):
     """Creates a Panel in the scene context of the properties editor"""
-    bl_label = "City Boom"
+    bl_label = "City Generator"
     bl_idname = "SCENE_PT_layout"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
@@ -490,12 +490,12 @@ class GenerateBigCity(bpy.types.Operator):
         return{'FINISHED'}    
 
 def register():
-    bpy.utils.register_class(LayoutDemoPanel)
+    bpy.utils.register_class(LayoutCityGeneratorPanel)
     bpy.utils.register_class(GenerateBigCity)
  
  
 def unregister():
-    bpy.utils.unregister_class(LayoutDemoPanel)
+    bpy.utils.unregister_class(LayoutCityGeneratorPanel)
     bpy.utils.unregister_class(GenerateBigCity)
  
 if __name__ == "__main__":  # only for live edit.
