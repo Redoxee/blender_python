@@ -727,6 +727,7 @@ def initSceneProperties(scn):
         max = 35)
     scn['nbEtage'] = 10
 
+########################################################################################
     bpy.types.Scene.tailleEtage = FloatProperty(
         name = "taille etage", 
         min = 0,
@@ -765,18 +766,39 @@ def initSceneProperties(scn):
         max = 1000)
     scn['fieldRadius'] = 175
     
+########################################################################################
     bpy.types.Scene.FactorPolyBegin = IntProperty(
         name = "multiply Factor polygone", 
         description = "multiply the begining polygon",
         min = 1,
         max = 20)
     scn['FactorPolyBegin'] = 1
-
+    
+    bpy.types.Scene.NbUpTownCenter = IntProperty(
+        name = "upTown Centers",
+        description = "number of activity center in the city",
+        min = 1,
+        max = 10)
+    scn['NbUpTownCenter'] = 2
+    
+    bpy.types.Scene.ceil_height = FloatProperty(
+        name = "height of each floor", 
+        min = 0.1,
+        max = 50.0)
+    scn['ceil_height'] = 3.0
+    
+    bpy.types.Scene.percentage_missing = FloatProperty(
+        name = "percentage missing", 
+        min = 0.0,
+        max = 1.0)
+    scn['percentage_missing'] = 0.05
+    
     bpy.types.Scene.BoolOnlyPoly = BoolProperty(
         name = "only polygon", 
         description = "only draw the base polygon of the city")
     scn['BoolOnlyPoly'] = False
     
+########################################################################################
     bpy.types.Scene.minArea = IntProperty(
         name = "minimal subdivision area", 
         description = "a polygon under this area won't be divide",
@@ -800,16 +822,20 @@ class LayoutCityGeneratorPanel(bpy.types.Panel):
 
         scene = context.scene
         
+        box = layout.box()
         
-        layout.prop(scene, 'FactorPolyBegin')
+        box.prop(scene, 'BoolOnlyPoly')
 
-        layout.prop(scene, 'BoolOnlyPoly')
+        box.prop(scene, 'FactorPolyBegin')
+        
+        box.prop(scene , 'NbUpTownCenter')
+        
+        box.prop(scene , 'ceil_height')
+        
+        box.prop(scene , 'percentage_missing')
 
         # Big render button
-        layout.label(text="Generate City")
-        row = layout.row()
-        row.scale_y = 3.0
-        row.operator("my.generator")
+        box.operator("my.generator")
         
 class GenerateBigCity(bpy.types.Operator):
     bl_idname = "my.generator"
@@ -818,8 +844,10 @@ class GenerateBigCity(bpy.types.Operator):
     def execute(self, context):
         onlyPoly = context.scene['BoolOnlyPoly']
         factorPolyBegin = context.scene['FactorPolyBegin']
-        
-        basic_main(factorPoly = factorPolyBegin ,isOnlyPoly = onlyPoly)
+        nbActivityCenter = context.scene['NbUpTownCenter']
+        floorHeight = context.scene['ceil_height']
+        percentage = context.scene['percentage_missing']
+        basic_main(factorPoly = factorPolyBegin ,isOnlyPoly = onlyPoly , nUptown = nbActivityCenter, floor_height = floorHeight, percentage_missing_building = percentage)
         return{'FINISHED'}    
     
 ###########################################################################################
@@ -837,7 +865,6 @@ class LayoutCreateFieldPanel(bpy.types.Panel):
         layout = self.layout
 
         scene = context.scene
-        
         
         layout.prop(scene, 'nbEdges')
         layout.prop(scene, 'fieldRadius')
@@ -881,19 +908,16 @@ class LayoutDividePanel(bpy.types.Panel):
         
         layout.prop(scene, 'minArea')
         
-        layout.label(text="Divide by the two longest side")
-        row = layout.row()
-        row.operator("my.simpledivider")
-        layout.label(text="Divide from the center")
-        row = layout.row()
-        row.operator("my.fromcenterdivider")
-        layout.label(text="Divide the most evenly possible")
-        row = layout.row()
-        row.operator("my.evendivider")
+        layout.label(text="Divide")
+        
+        col = layout.column(align = True)
+        col.operator("my.simpledivider")
+        col.operator("my.fromcenterdivider")
+        col.operator("my.evendivider")
         
 class DivideNormalPolygonSelecterOp(bpy.types.Operator):
     bl_idname = "my.simpledivider"
-    bl_label = "divide"
+    bl_label = "Simple"
  
     def execute(self, context):
     
@@ -904,7 +928,7 @@ class DivideNormalPolygonSelecterOp(bpy.types.Operator):
 
 class DivideFromCenterPolygonSelecterOp(bpy.types.Operator):
     bl_idname = "my.fromcenterdivider"
-    bl_label = "divide"
+    bl_label = "Center"
  
     def execute(self, context):
 
@@ -915,7 +939,7 @@ class DivideFromCenterPolygonSelecterOp(bpy.types.Operator):
 
 class DivideEvenlyPolygonSelecterOp(bpy.types.Operator):
     bl_idname = "my.evendivider"
-    bl_label = "divide"
+    bl_label = "Even"
  
     def execute(self, context):
 
@@ -969,12 +993,12 @@ class LayoutgenerateCitySelectionPanel(bpy.types.Panel):
 
         scene = context.scene
         
+        row = layout.row()
+        row.operator("my.uptown_operator")
         
         layout.label(text="Generate city")
         row = layout.row()
         row.operator("my.generator_selection")
-        row = layout.row()
-        row.operator("my.uptown_operator")
         
     
 ###########################################################################################
@@ -994,26 +1018,25 @@ class LayoutCreatBatimentPanel(bpy.types.Panel):
         scene = context.scene
         
         
-        layout.prop(scene, 'nbEtage')
-        layout.prop(scene, 'tailleEtage')
-        layout.prop(scene, 'tailleInter')
-        layout.prop(scene, 'profonfeur')
-        layout.prop(scene, 'taille_rue')
+        col = layout.column(align = True)
+        col.prop(scene, 'nbEtage')
+        col.prop(scene, 'tailleEtage')
+        col.prop(scene, 'tailleInter')
+        col.prop(scene, 'profonfeur')
+        col.prop(scene, 'taille_rue')
 
 
-        layout.label(text="Generate Bat simple")
-        row = layout.row()
+        layout.label(text="Generate Building")
+        row = layout.row(align=True)
         row.operator("my.generatorbatsimple")
-        row = layout.row()
         row.operator("my.house")
-        row = layout.row()
         row.operator("my.tower")
         
         
         
 class GenerateBatSimple(bpy.types.Operator):
     bl_idname = "my.generatorbatsimple"
-    bl_label = "Generate building"
+    bl_label = "Building"
  
     def execute(self, context):
         nbEtage = context.scene['nbEtage']
@@ -1026,7 +1049,7 @@ class GenerateBatSimple(bpy.types.Operator):
 
 class GenerateMaison(bpy.types.Operator):
     bl_idname = "my.house"
-    bl_label = "Generate house"
+    bl_label = "House"
  
     def execute(self, context):
         nbEtage = context.scene['nbEtage']
@@ -1039,7 +1062,7 @@ class GenerateMaison(bpy.types.Operator):
 
 class GenerateTour(bpy.types.Operator):
     bl_idname = "my.tower"
-    bl_label = "Generate tower"
+    bl_label = "Tower"
  
     def execute(self, context):
         nbEtage = context.scene['nbEtage']
