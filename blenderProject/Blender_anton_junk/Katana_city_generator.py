@@ -562,7 +562,7 @@ def dessine_polygone_parcel(polygone , name,shrink = 0.7 , variation_profondeur_
     edges =[]
     for i in range(nb_verts):
         edges.append((i,(i+1) % nb_verts))
-    mesh = bpy.data.meshes.new('polygone_' + name)
+    mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(polygone, edges, [])
     mesh.update()
     obj,base = add_obj(mesh, bpy.context)
@@ -643,7 +643,7 @@ def dessine_ville(polygone_englobant = [] , tPoly = [],nb_centre_activite = 1 ,n
                 percentage_etage = random() * 0.6 + 0.2
                 h_etage = hauteur_etage * percentage_etage
                 h_inter_etage = hauteur_etage - h_etage
-                dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage , h_etage = h_etage , h_inter = h_inter_etage)
+                dessine_polygone_parcel(polygone,'polygon',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage , h_etage = h_etage , h_inter = h_inter_etage)
             
         print (str((1.0 *index) / len(tPoly)))
     
@@ -683,7 +683,7 @@ def dessine_ville_from_list(tPoly = [],uptownPosition = Vector((0,0,0)) ,influen
             percentage_etage = random() * 0.6 + 0.2
             h_etage = hauteur_etage * percentage_etage
             h_inter_etage = hauteur_etage - h_etage
-            dessine_polygone_parcel(polygone,'',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage , h_etage = h_etage , h_inter = h_inter_etage)
+            dessine_polygone_parcel(polygone,'polygon',shrink = shrink_parcel,variation_profondeur_etage = shrink_parcel,shrink_toit = toit ,nb_etage = n_etage , h_etage = h_etage , h_inter = h_inter_etage)
             
         print (str((1.0 *index) / len(tPoly)))
     
