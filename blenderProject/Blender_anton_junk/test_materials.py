@@ -414,6 +414,9 @@ def dessine_simple_batiment(polygone =[], hauteur = 10, shrink = 0.7, name = 'po
     return obj,base
     
 def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
+    listIndiceFaces = [0]
+    obj =  bpy.context.selected_objects[0]
+    
     etage = Vector((0,0,hauteur_etage))
     inter = Vector((0,0,hauteur_inter_etage))
     shrink = (profondeur,profondeur,profondeur)
@@ -431,6 +434,12 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
         bpy.ops.transform.translate(value=inter)
         bpy.ops.mesh.extrude_region_move()
         bpy.ops.transform.resize(value=shrink)
+        
+        bpy.ops.object.mode_set(mode='OBJECT')
+        obj.data.update(calc_tessface=True) 
+        listIndiceFaces.append(len(obj.data.tessfaces)-1)
+        bpy.ops.object.mode_set(mode='EDIT')
+
     bpy.ops.mesh.extrude_region_move()
     bpy.ops.transform.translate(value=inter)
     bpy.ops.transform.resize(value=(toit,toit,toit))
@@ -441,6 +450,26 @@ def dessine_batiment(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb
     bpy.ops.mesh.normals_make_consistent(inside=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     
+    obj.data.update(calc_tessface=True) 
+    listIndiceFaces.append(len(obj.data.tessfaces)-1)
+    print(str(listIndiceFaces))
+    
+    # Create three materials
+    red = bpy.data.materials.new('Red')
+    red.diffuse_color = (1,0,0)
+    blue = bpy.data.materials.new('Blue')
+    blue.diffuse_color = (0,0,1)
+    
+    obj.data.materials.append(red)
+    obj.data.materials.append(blue)
+    j=0
+    for i in range(len(listIndiceFaces) - 1):
+        j = i+1
+        indice_debut_etage = listIndiceFaces[i]
+        indice_fin_etage = listIndiceFaces[j]
+        
+        for indFace in range(indice_debut_etage,indice_fin_etage ):
+            obj.data.tessfaces[indFace].material_index = i%2
 
 def dessine_maison(hauteur_etage = 2,hauteur_inter_etage = 1,profondeur=0.8,nb_etage = 10,toit = 1):
     etage = Vector((0,0,hauteur_etage))
